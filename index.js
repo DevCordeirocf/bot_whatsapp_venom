@@ -5,14 +5,22 @@ const CONFIG = {
     sessionName: 'meu-bot-whatsapp',
     headless: false, // true = sem interface gráfica, false = mostra o navegador
     logLevel: 'error', // 'error', 'warn', 'info', 'debug'
-    browserArgs: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-default-browser-check'
-    ]
+    // Configurações para manter a sessão
+    mkdirFolderToken: './tokens',
+    folderNameToken: 'tokens',
+    puppeteerOptions: {
+        userDataDir: './session-data', // Diretório para salvar dados da sessão
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
+        ]
+    }
 };
 
 // ===== MENSAGENS DE RESPOSTA =====
@@ -42,7 +50,7 @@ const COMPORTAMENTO = {
     responderApenas: {
         grupos: false,        // true = responde em grupos, false = não responde
         contatos: true,       // true = responde contatos individuais
-        numerosDesconhecidos: true // true = responde números que não estão na agenda
+        numerosDesconhecidos: false // true = responde números que não estão na agenda
     },
     
     // Lista de contatos que NÃO devem receber respostas automáticas
@@ -52,7 +60,7 @@ const COMPORTAMENTO = {
     ],
     
     // Tempo de espera entre mensagens (em milissegundos)
-    delayEntreMensagens: 5000, // 2 segundos
+    delayEntreMensagens: 2000, // 2 segundos
     
     // Enviar mensagens de forma aleatória (para parecer mais humano)
     ordemAleatoria: true
@@ -159,14 +167,29 @@ async function iniciarBot() {
             (base64Qr, asciiQR, attempts, urlCode) => {
                 console.log('📱 QR Code gerado! Escaneie com seu WhatsApp:');
                 console.log(asciiQR);
+                console.log(`🔄 Tentativa: ${attempts}`);
             },
             (statusSession, session) => {
                 console.log('📊 Status da sessão:', statusSession);
+                if (statusSession === 'isLogged') {
+                    console.log('✅ Sessão já estava ativa! Não precisa escanear QR Code.');
+                }
             },
             {
                 headless: CONFIG.headless,
                 logLevel: CONFIG.logLevel,
-                browserArgs: CONFIG.browserArgs
+                mkdirFolderToken: CONFIG.mkdirFolderToken,
+                folderNameToken: CONFIG.folderNameToken,
+                puppeteerOptions: CONFIG.puppeteerOptions,
+                // Configurações adicionais para manter sessão
+                createPathFileToken: true,
+                waitForLogin: true,
+                disableSpins: true,
+                disableWelcome: true,
+                updatesLog: false,
+                autoClose: 0, // 0 = não fecha automaticamente
+                addProxy: undefined,
+                session: CONFIG.sessionName
             }
         );
         
